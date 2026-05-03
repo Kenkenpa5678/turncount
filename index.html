@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ポケモンGO 技カウントトレーナー (GBL Count Trainer)</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* カスタムアニメーション設定 */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-feedback {
+            animation: slideUpFade 0.25s ease-out forwards;
+        }
+        
+        /* 押し込みボタンのアクティブ状態調整 */
+        button:active:not(:disabled) {
+            transform: translateY(4px);
+            border-bottom-width: 0px !important;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body class="h-screen bg-sky-50 flex flex-col font-sans text-slate-800 overflow-hidden relative selection:bg-blue-200">
+
+    <!-- Background Decor -->
+    <div class="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-sky-200 to-transparent -z-10 pointer-events-none"></div>
+
+    <!-- Fixed Header Section -->
+    <div class="p-4 pb-0 flex flex-col items-center shrink-0 z-10">
+        <header class="w-full max-w-md mb-4 flex flex-col items-center text-center">
+            <div class="flex items-center gap-2 mb-1">
+                <div class="bg-blue-600 p-1.5 rounded-full shadow-sm text-white">
+                    <i data-lucide="sword" class="w-5 h-5 fill-current"></i>
+                </div>
+                <h1 class="text-2xl font-black tracking-tight text-slate-800">
+                    GBL COUNT <span class="text-blue-600">TRAINER</span>
+                </h1>
+            </div>
+            <div class="flex items-center gap-1 text-[10px] text-slate-500 font-bold tracking-[0.1em] uppercase">
+                <span>スーパーリーグ / Great League</span>
+                <span class="text-slate-300">•</span>
+                <i data-lucide="database" class="w-2.5 h-2.5"></i>
+                <span id="db-size-display">-- Mons</span>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="w-full max-w-md flex justify-between gap-3 mb-4">
+            <div class="bg-white px-4 py-2 rounded-2xl flex-1 flex flex-col items-center shadow-sm border border-slate-100">
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">スコア / Score</span>
+                <span id="score-display" class="text-xl font-black text-blue-600 leading-tight">0</span>
+            </div>
+            <div class="bg-white px-4 py-2 rounded-2xl flex-1 flex flex-col items-center shadow-sm border border-slate-100">
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">連勝 / Streak</span>
+                <span id="streak-display" class="text-xl font-black text-orange-500 leading-tight">0</span>
+            </div>
+        </div>
+
+        <!-- Mode Switcher -->
+        <div class="w-full max-w-md bg-white p-1.5 rounded-2xl flex shadow-sm border border-slate-100 mb-2">
+            <button id="mode-standard-btn" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center bg-sky-100 text-blue-700 shadow-sm">
+                <span>通常</span>
+                <span class="text-[9px] opacity-70 font-normal">Standard</span>
+            </button>
+            <button id="mode-advanced-btn" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50">
+                <span>応用</span>
+                <span class="text-[9px] opacity-70 font-normal">Advanced</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Scrollable Content Section -->
+    <div class="flex-1 overflow-y-auto p-4 pt-2 flex flex-col items-center w-full pb-20">
+        <div id="quiz-card" class="w-full max-w-md bg-white rounded-3xl shadow-lg overflow-hidden border border-slate-100 shrink-0 relative hidden">
+            
+            <!-- Header for Card -->
+            <div class="bg-gradient-to-r from-blue-500 to-sky-400 p-5 text-white text-center relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-20 pointer-events-none select-none">
+                    <i data-lucide="trophy" class="w-20 h-20"></i>
+                </div>
+                <div class="relative z-10">
+                    <p class="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">相手のポケモン / Opponent</p>
+                    <h2 id="pokemon-name" class="text-3xl font-black mb-1 drop-shadow-md">--</h2>
+                    <div class="inline-block bg-white/20 backdrop-blur-sm text-white text-[10px] px-3 py-1 rounded-full font-bold mt-2">スーパーリーグ / GL</div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- Hint Toggle Button -->
+                <div class="flex justify-between items-end -mb-2">
+                    <span class="text-[10px] font-bold text-slate-400">わざデータ / Move Data</span>
+                    <button id="hint-toggle-btn" type="button" class="text-[10px] bg-yellow-50 text-yellow-700 px-2.5 py-1 rounded-full font-bold shadow-sm border border-yellow-200 flex items-center gap-1 transition-colors hover:bg-yellow-100">
+                        <i data-lucide="lightbulb" class="w-3 h-3"></i> <span>初心者ヒント / Hint</span>
+                    </button>
+                </div>
+
+                <!-- Moves -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-center relative overflow-hidden shadow-inner flex flex-col justify-center h-full min-h-[80px]">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-slate-300"></div>
+                        <span class="text-[9px] font-bold text-slate-400 block mb-1.5 tracking-widest leading-tight">ノーマルアタック<br/><span class="scale-90 inline-block font-normal">Fast Attack</span></span>
+                        <p id="fast-move-name" class="font-bold text-slate-800 text-[14px] leading-tight break-words">--</p>
+                        <div id="fast-move-hint" class="hidden mt-1.5 text-[11px] text-orange-700 font-mono font-bold bg-orange-100 rounded-md py-0.5 px-1 shadow-inner border border-orange-200"></div>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-2xl border border-blue-100 text-center relative overflow-hidden shadow-inner flex flex-col justify-center h-full min-h-[80px]">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-blue-400"></div>
+                        <span class="text-[9px] font-bold text-blue-400 block mb-1.5 tracking-widest leading-tight">スペシャルアタック<br/><span class="scale-90 inline-block font-normal">Charged Attack</span></span>
+                        <p id="charged-move-name" class="font-bold text-blue-700 text-[14px] leading-tight break-words">--</p>
+                        <div id="charged-move-hint" class="hidden mt-1.5 text-[11px] text-blue-700 font-mono font-bold bg-blue-100 rounded-md py-0.5 px-1 shadow-inner border border-blue-200"></div>
+                    </div>
+                </div>
+
+                <!-- Question Text -->
+                <div id="question-area" class="text-center py-2 min-h-[90px] flex flex-col justify-center">
+                    <!-- JS injects question here -->
+                </div>
+
+                <!-- Form -->
+                <form id="quiz-form" class="flex flex-col gap-4">
+                    <div class="flex gap-3 items-stretch">
+                        <div class="flex-1 relative group">
+                            <span class="absolute top-1.5 left-3 text-[9px] font-bold text-slate-400 uppercase tracking-wider z-10 transition-colors group-focus-within:text-blue-500">回数 / Count</span>
+                            <input
+                                id="input-count"
+                                type="number"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                placeholder="0"
+                                class="w-full bg-slate-100 border-2 border-slate-200 focus:border-blue-400 focus:bg-white rounded-2xl px-4 pt-6 pb-2 text-center text-3xl font-black text-slate-800 outline-none transition-all disabled:opacity-50 shadow-inner"
+                            />
+                        </div>
+                        <div class="flex-1 relative group">
+                            <span class="absolute top-1.5 left-3 text-[9px] font-bold text-slate-400 uppercase tracking-wider z-10 transition-colors group-focus-within:text-orange-500">ターン / Turns</span>
+                            <input
+                                id="input-turns"
+                                type="number"
+                                inputmode="numeric"
+                                pattern="[0-9]*"
+                                placeholder="0"
+                                class="w-full bg-slate-100 border-2 border-slate-200 focus:border-orange-400 focus:bg-white rounded-2xl px-4 pt-6 pb-2 text-center text-3xl font-black text-orange-600 outline-none transition-all disabled:opacity-50 shadow-inner"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        id="submit-btn"
+                        type="submit"
+                        class="bg-emerald-500 hover:bg-emerald-400 border-b-4 border-emerald-700 disabled:border-b-0 disabled:translate-y-1 disabled:bg-slate-300 disabled:text-slate-500 text-white w-full py-3.5 rounded-2xl font-black transition-all flex items-center justify-center gap-2 shadow-md text-lg tracking-wide cursor-pointer"
+                    >
+                        <span>判定 / Check</span>
+                        <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                    </button>
+                </form>
+
+                <!-- Feedback -->
+                <div id="feedback-container" class="min-h-[80px]">
+                    <!-- JS injects feedback here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Footer Section -->
+    <footer class="absolute bottom-0 w-full p-4 pt-0 shrink-0 flex justify-center z-10 bg-gradient-to-t from-sky-50 to-transparent">
+        <p class="text-[10px] text-slate-400 text-center max-w-[280px] font-bold uppercase tracking-widest leading-relaxed">
+            Pokémon GO Unofficial Tool<br/>
+            Enhance your GBL skills.
+        </p>
+    </footer>
+
+    <!-- App Logic -->
+    <script>
+        // --- GBL (PvP) Data Section ---
+        const POKEMON_DATABASE = [
+            {
+                name: "アローラキュウコン", nameEn: "Alolan Ninetales",
+                fastMoves: [{ name: "こなゆき", nameEn: "Powder Snow", energy: 8, turns: 2 }, { name: "あまえる", nameEn: "Charm", energy: 6, turns: 3 }],
+                chargedMoves: [
+                    { name: "ウェザーボール(氷)", nameEn: "Weather Ball (Ice)", cost: 35 }, { name: "マジカルシャイン", nameEn: "Dazzling Gleam", cost: 70 },{ name: "ひやみず", nameEn: "Chilling Water", cost: 45 },
+                    { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }, { name: "サイコショック", nameEn: "Psyshock", cost: 45 }
+                ]
+            },
+            {
+                name: "デンヂムシ", nameEn: "Charjabug",
+                fastMoves: [{ name: "ボルトチェンジ", nameEn: "Volt Switch", energy: 16, turns: 4 }, { name: "スパーク", nameEn: "Spark", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "シザークロス", nameEn: "X-Scissor", cost: 35 }, { name: "ほうでん", nameEn: "Discharge", cost: 45 }, { name: "かみくだく", nameEn: "Crunch", cost: 45 }
+                ]
+            },
+            {
+                name: "トリデプス", nameEn: "Bastiodon",
+                fastMoves: [{ name: "うちおとす", nameEn: "Smack Down", energy: 8, turns: 3 }],
+                chargedMoves: [
+                    { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }, { name: "かえんほうしゃ", nameEn: "Flamethrower", cost: 55 }, { name: "ラスターカノン", nameEn: "Flash Cannon", cost: 75 }
+                ]
+            },
+            {
+                name: "フライゴン", nameEn: "Flygon",
+                fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }, { name: "ドラゴンテール", nameEn: "Dragon Tail", energy: 12, turns: 3 }],
+                chargedMoves: [
+                    { name: "たつまき", nameEn: "Twister", cost: 40 }, { name: "だいちのちから", nameEn: "Earth Power", cost: 55 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 },
+                    { name: "ドラゴンクロー", nameEn: "Dragon Claw", cost: 50 }, { name: "ねっさのだいち", nameEn: "Scorching Sands", cost: 50 }, { name: "ばくおんぱ", nameEn: "Boomburst", cost: 70 }
+                ]
+            },
+            {
+                name: "トリトドン", nameEn: "Gastrodon",
+                fastMoves: [{ name: "どろかけ", nameEn: "Mud-Slap", energy: 10, turns: 3 }],
+                chargedMoves: [
+                    { name: "ドラゴンクロー", nameEn: "Dragon Claw", cost: 35 }, { name: "だいちのちから", nameEn: "Earth Power", cost: 55 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }
+                ]
+            },
+            {
+                name: "デカヌチャン", nameEn: "Tinkaton",
+                fastMoves: [{ name: "ようせいのかぜ", nameEn: "Fairy Wind", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "じならし", nameEn: "Bulldoze", cost: 45 }, { name: "デカハンマー", nameEn: "Gigaton Hammer", cost: 60 }, { name: "じゃれつく", nameEn: "Play Rough", cost: 60 }
+                ]
+            },
+            {
+                name: "ブルンゲル", nameEn: "Jellicent",
+                fastMoves: [{ name: "たたりめ", nameEn: "Hex", energy: 13, turns: 3 }, { name: "あわ", nameEn: "Bubble", energy: 11, turns: 3 }],
+                chargedMoves: [
+                    { name: "なみのり", nameEn: "Surf", cost: 45 }, { name: "バブルこうせん", nameEn: "Bubble Beam", cost: 40 }, { name: "シャドーボール", nameEn: "Shadow Ball", cost: 50 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }
+                ]
+            },
+            {
+                name: "グラエナ", nameEn: "Mightyena",
+                fastMoves: [{ name: "ふいうち", nameEn: "Sucker Punch", energy: 7, turns: 2 }],
+                chargedMoves: [
+                    { name: "どくどくのキバ", nameEn: "Poison Fang", cost: 40 }, { name: "かみくだく", nameEn: "Crunch", cost: 45 }, { name: "じゃれつく", nameEn: "Play Rough", cost: 60 }
+                ]
+            },
+            {
+                name: "ルチャブル", nameEn: "Hawlucha",
+                fastMoves: [{ name: "けたぐり", nameEn: "Low Kick", energy: 8, turns: 2 }, { name: "どくづき", nameEn: "Poison Jab", energy: 7, turns: 2 }],
+                chargedMoves: [
+                    { name: "フライングプレス", nameEn: "Flying Press", cost: 40 }, { name: "つばめがえし", nameEn: "Aerial Ace", cost: 35 }, { name: "シザークロス", nameEn: "X-Scissor", cost: 40 }
+                ]
+            },
+            {
+                name: "トゲデマル", nameEn: "Togedemaru",
+                fastMoves: [{ name: "でんきショック", nameEn: "Thunder Shock", energy: 9, turns: 2 }, { name: "スパーク", nameEn: "Spark", energy: 7, turns: 2 }],
+                chargedMoves: [
+                    { name: "とどめばり", nameEn: "Fell Stinger", cost: 35 }, { name: "ワイルドボルト", nameEn: "Wild Charge", cost: 45 }, { name: "ジャイロボール", nameEn: "Gyro Ball", cost: 50 }
+                ]
+            },
+            {
+                name: "アローラサンドパン", nameEn: "Alolan Sandslash",
+                fastMoves: [{ name: "こなゆき", nameEn: "Powder Snow", energy: 8, turns: 2 }, { name: "シャドークロー", nameEn: "Shadow Claw", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "れいとうパンチ", nameEn: "Ice Punch", cost: 40 }, { name: "ドリルライナー", nameEn: "Drill Run", cost: 45 }, { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }
+                ]
+            },
+            {
+                name: "ピクシー", nameEn: "Clefable",
+                fastMoves: [{ name: "あまえる", nameEn: "Charm", energy: 8, turns: 3 }, { name: "ようせいのかぜ", nameEn: "Fairy Wind", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "コメットパンチ", nameEn: "Meteor Mash", cost: 45 }, { name: "スピードスター", nameEn: "Swift", cost: 35 }, { name: "マジカルシャイン", nameEn: "Dazzling Gleam", cost: 55 }, { name: "ムーンフォース", nameEn: "Moonblast", cost: 60 }, { name: "サイコキネシス", nameEn: "Psychic", cost: 55 }
+                ]
+            },
+            {
+                name: "ドラピオン", nameEn: "Drapion",
+                fastMoves: [{ name: "どくばり", nameEn: "Poison Sting", energy: 9, turns: 2 }, { name: "こおりのきば", nameEn: "Ice Fang", energy: 6, turns: 2 }],
+                chargedMoves: [
+                    { name: "アクアテール", nameEn: "Aqua Tail", cost: 35 }, { name: "かみくだく", nameEn: "Crunch", cost: 45 }, { name: "ヘドロばくだん", nameEn: "Sludge Bomb", cost: 50 }
+                ]
+            },
+            {
+                name: "フォレトス", nameEn: "Forretress",
+                fastMoves: [{ name: "むしくい", nameEn: "Bug Bite", energy: 3, turns: 1 }, { name: "ボルトチェンジ", nameEn: "Volt Switch", energy: 16, turns: 4 }],
+                chargedMoves: [
+                    { name: "ミラーショット", nameEn: "Mirror Shot", cost: 35 }, { name: "すなじごく", nameEn: "Sand Tomb", cost: 40 }, { name: "がんせきふうじ", nameEn: "Rock Tomb", cost: 50 }, { name: "じしん", nameEn: "Earthquake", cost: 65 }
+                ]
+            },
+            {
+                name: "グライガー", nameEn: "Gligar",
+                fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }, { name: "れんぞくぎり", nameEn: "Fury Cutter", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }, { name: "あなをほる", nameEn: "Dig", cost: 50 }, { name: "つじぎり", nameEn: "Night Slash", cost: 35 }
+                ]
+            },
+            {
+                name: "ランターン", nameEn: "Lanturn",
+                fastMoves: [{ name: "スパーク", nameEn: "Spark", energy: 7, turns: 2 }, { name: "みずでっぽう", nameEn: "Water Gun", energy: 3, turns: 1 }],
+                chargedMoves: [
+                    { name: "なみのり", nameEn: "Surf", cost: 45 }, { name: "１０まんボルト", nameEn: "Thunderbolt", cost: 55 }, { name: "ハイドロポンプ", nameEn: "Hydro Pump", cost: 75 }
+                ]
+            },
+            {
+                name: "モルペコ", nameEn: "Morpeko",
+                fastMoves: [{ name: "でんきショック", nameEn: "Thunder Shock", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "サイコファング", nameEn: "Psychic Fangs", cost: 35 }, { name: "タネばくだん", nameEn: "Seed Bomb", cost: 40 }, { name: "オーラぐるま", nameEn: "Aura Wheel", cost: 45 }
+                ]
+            },
+            {
+                name: "ヤミラミ", nameEn: "Sableye",
+                fastMoves: [{ name: "シャドークロー", nameEn: "Shadow Claw", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "イカサマ", nameEn: "Foul Play", cost: 40 }, { name: "おんがえし", nameEn: "Return", cost: 70 }, { name: "マジカルシャイン", nameEn: "Dazzling Gleam", cost: 55 }, { name: "パワージェム", nameEn: "Power Gem", cost: 50 }
+                ]
+            },
+            {
+                name: "トゲキッス", nameEn: "Togekiss",
+                fastMoves: [{ name: "つつく", nameEn: "Peck", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "はどうだん", nameEn: "Aura Sphere", cost: 40 }, { name: "サイコショック", nameEn: "Psyshock", cost: 40 }, { name: "マジカルシャイン", nameEn: "Dazzling Gleam", cost: 55 }
+                ]
+            },
+            {
+                name: "チルタリス", nameEn: "Altaria",
+                fastMoves: [{ name: "りゅうのいぶき", nameEn: "Dragon Breath", energy: 4, turns: 1 }, { name: "つつく", nameEn: "Peck", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "ゴッドバード", nameEn: "Sky Attack", cost: 50 }, { name: "かえんほうしゃ", nameEn: "Flamethrower", cost: 55 }, { name: "りゅうのはどう", nameEn: "Dragon Pulse", cost: 55 }
+                ]
+            },
+            {
+                name: "ドオー", nameEn: "Clodsire",
+                fastMoves: [{ name: "どくばり", nameEn: "Poison Sting", energy: 9, turns: 2 }, { name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "みずのはどう", nameEn: "Water Pulse", cost: 50 }, { name: "じしん", nameEn: "Earthquake", cost: 65 }, { name: "ヘドロばくだん", nameEn: "Sludge Bomb", cost: 50 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }
+                ]
+            },
+            {
+                name: "ノコッチ", nameEn: "Dunsparce",
+                fastMoves: [{ name: "ころがる", nameEn: "Rollout", energy: 13, turns: 3 }, { name: "おどろかす", nameEn: "Astonish", energy: 10, turns: 3 }],
+                chargedMoves: [
+                    { name: "ドリルライナー", nameEn: "Drill Run", cost: 45 }, { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }                ]
+            },
+            {
+                name: "オオタチ", nameEn: "Furret",
+                fastMoves: [{ name: "ふいうち", nameEn: "Sucker Punch", energy: 7, turns: 2 }],
+                chargedMoves: [
+                    { name: "スピードスター", nameEn: "Swift", cost: 35 }, { name: "くさわけ", nameEn: "Trailblaze", cost: 45 }, { name: "かわらわり", nameEn: "Brick Break", cost: 40 }
+                ]
+            },
+            {
+                name: "グライオン", nameEn: "Gliscor",
+                fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }, { name: "れんぞくぎり", nameEn: "Fury Cutter", energy: 4, turns: 1 }, { name: "すなかけ", nameEn: "Sand Attack", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "つじぎり", nameEn: "Night Slash", cost: 35 }, { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }, { name: "すなじごく", nameEn: "Sand Tomb", cost: 40 }, { name: "アクロバット", nameEn: "Acrobatics", cost: 45 }, { name: "じしん", nameEn: "Earthquake", cost: 65 }
+                ]
+            },
+            {
+                name: "ラプラス", nameEn: "Lapras",
+                fastMoves: [{ name: "こおりのつぶて", nameEn: "Ice Shard", energy: 10, turns: 3 }, { name: "サイコウェーブ", nameEn: "Psywave", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "うたかたのアリア", nameEn: "Sparkling Aria", cost: 45 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }, { name: "ロケットずつき", nameEn: "Skull Bash", cost: 75 }
+                ]
+            },
+            {
+                name: "ヨルノズク", nameEn: "Noctowl",
+                fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "ゴッドバード", nameEn: "Sky Attack", cost: 50 }, { name: "シャドーボール", nameEn: "Shadow Ball", cost: 50 }, { name: "サイコキネシス", nameEn: "Psychic", cost: 55 }
+                ]
+            },
+            {
+                name: "ハッサム", nameEn: "Scizor",
+                fastMoves: [{ name: "れんぞくぎり", nameEn: "Fury Cutter", energy: 4, turns: 1 }, { name: "バレットパンチ", nameEn: "Bullet Punch", energy: 7, turns: 2 }],
+                chargedMoves: [
+                    { name: "つじぎり", nameEn: "Night Slash", cost: 35 }, { name: "シザークロス", nameEn: "X-Scissor", cost: 40 }, { name: "アイアンヘッド", nameEn: "Iron Head", cost: 50 }, { name: "くさわけ", nameEn: "Trailblaze", cost: 45 }
+                ]
+            },
+            {
+                name: "ドダイトス", nameEn: "Torterra",
+                fastMoves: [{ name: "どろかけ", nameEn: "Mud-Slap", energy: 10, turns: 3 }],
+                chargedMoves: [
+                    { name: "ハードプラント", nameEn: "Frenzy Plant", cost: 45 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }, { name: "すなじごく", nameEn: "Sand Tomb", cost: 40 }
+                ]
+            },
+            {
+                name: "コノヨザル", nameEn: "Annihilape",
+                fastMoves: [{ name: "けたぐり", nameEn: "Low Kick", energy: 7, turns: 2 }],
+                chargedMoves: [
+                    { name: "ふんどのこぶし", nameEn: "Rage Fist", cost: 35 }, { name: "つじぎり", nameEn: "Night Slash", cost: 35 }, { name: "インファイト", nameEn: "Close Combat", cost: 45 }, { name: "シャドーボール", nameEn: "Shadow Ball", cost: 50 }
+                ]
+            },
+            {
+                name: "アーマーガア", nameEn: "Corviknight",
+                fastMoves: [{ name: "すなかけ", nameEn: "Sand Attack", energy: 4, turns: 1 }, { name: "はがねのつばさ", nameEn: "Steel Wing", energy: 5, turns: 2 }],
+                chargedMoves: [
+                    { name: "エアカッター", nameEn: "Air Cutter", cost: 35 }, { name: "しっぺがえし", nameEn: "Payback", cost: 60 }, { name: "アイアンヘッド", nameEn: "Iron Head", cost: 50 }
+                ]
+            },
+            {
+                name: "サマヨール", nameEn: "Dusclops",
+                fastMoves: [{ name: "たたりめ", nameEn: "Hex", energy: 13, turns: 3 }],
+                chargedMoves: [
+                    { name: "シャドーパンチ", nameEn: "Shadow Punch", cost: 35 }, { name: "れいとうパンチ", nameEn: "Ice Punch", cost: 40 }, { name: "ポルターガイスト", nameEn: "Poltergeist", cost: 75 }
+                ]
+            },
+            {
+                name: "ガラルマッギョ", nameEn: "Galarian Stunfisk",
+                fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }, { name: "メタルクロー", nameEn: "Metal Claw", energy: 7, turns: 2 }],
+                chargedMoves: [
+                    { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }, { name: "じしん", nameEn: "Earthquake", cost: 65 }, { name: "だくりゅう", nameEn: "Muddy Water", cost: 35 }
+                ]
+            },
+            {
+                name: "ベロベルト", nameEn: "Lickilicky",
+                fastMoves: [{ name: "ころがる", nameEn: "Rollout", energy: 13, turns: 3 }],
+                chargedMoves: [
+                    { name: "のしかかり", nameEn: "Body Slam", cost: 35 }, { name: "シャドーボール", nameEn: "Shadow Ball", cost: 50 }, { name: "じしん", nameEn: "Earthquake", cost: 65 }
+                ]
+            },
+            {
+                name: "ベロリンガ", nameEn: "Lickitung",
+                fastMoves: [{ name: "したでなめる", nameEn: "Lick", energy: 3, turns: 1 }],
+                chargedMoves: [
+                    { name: "のしかかり", nameEn: "Body Slam", cost: 35 }, { name: "パワーウィップ", nameEn: "Power Whip", cost: 50 }, { name: "まきつく", nameEn: "Wrap", cost: 45 }
+                ]
+            },
+            {
+                name: "ゴロンダ", nameEn: "Pangoro",
+                fastMoves: [{ name: "からてチョップ", nameEn: "Karate Chop", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "つじぎり", nameEn: "Night Slash", cost: 35 }, { name: "インファイト", nameEn: "Close Combat", cost: 45 }, { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }
+                ]
+            },
+            {
+                name: "トドゼルガ", nameEn: "Walrein",
+                fastMoves: [{ name: "こなゆき", nameEn: "Powder Snow", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "つららばり", nameEn: "Icicle Spear", cost: 40 }, { name: "じしん", nameEn: "Earthquake", cost: 65 }, { name: "みずのはどう", nameEn: "Water Pulse", cost: 50 }
+                ]
+            },
+            {
+                name: "ドデカバシ", nameEn: "Toucannon",
+                fastMoves: [{ name: "つつく", nameEn: "Peck", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "ドリルくちばし", nameEn: "Drill Peck", cost: 40 }, { name: "ロックブラスト", nameEn: "Rock Blast", cost: 40 }, { name: "くちばしキャノン", nameEn: "Beak Blast", cost: 55 }
+                ]
+            },
+            {
+                name: "マリルリ", nameEn: "Azumarill",
+                fastMoves: [{ name: "あわ", nameEn: "Bubble", energy: 7, turns: 3 }],
+                chargedMoves: [
+                    { name: "じゃれつく", nameEn: "Play Rough", cost: 60 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }, { name: "ハイドロポンプ", nameEn: "Hydro Pump", cost: 75 }
+                ]
+            },
+            {
+                name: "ユレイドル", nameEn: "Cradily",
+                fastMoves: [{ name: "タネマシンガン", nameEn: "Bullet Seed", energy: 13, turns: 3 }, { name: "ようかいえき", nameEn: "Acid", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }, { name: "くさむすび", nameEn: "Grass Knot", cost: 50 }, { name: "がんせきふうじ", nameEn: "Rock Tomb", cost: 50 }
+                ]
+            },
+            {
+                name: "エンペルト", nameEn: "Empoleon",
+                fastMoves: [{ name: "きんぞくおん", nameEn: "Metal Sound", energy: 8, turns: 2 }, { name: "たきのぼり", nameEn: "Waterfall", energy: 10, turns: 3 }],
+                chargedMoves: [
+                    { name: "ハイドロカノン", nameEn: "Hydro Cannon", cost: 40 }, { name: "ドリルくちばし", nameEn: "Drill Peck", cost: 40 }, { name: "ふぶき", nameEn: "Blizzard", cost: 75 }
+                ]
+            },
+            {
+                name: "ガラルファイヤー", nameEn: "Galarian Moltres",
+                fastMoves: [{ name: "ふいうち", nameEn: "Sucker Punch", energy: 7, turns: 2 }, { name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "げんしのちから", nameEn: "Ancient Power", cost: 45 }, { name: "しっぺがえし", nameEn: "Payback", cost: 60 }, { name: "そらをとぶ", nameEn: "Fly", cost: 60 }, { name: "ブレイブバード", nameEn: "Brave Bird", cost: 55 }
+                ]
+            },
+            {
+                name: "ヨクバリス", nameEn: "Greedent",
+                fastMoves: [{ name: "タネマシンガン", nameEn: "Bullet Seed", energy: 13, turns: 3 }, { name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "のしかかり", nameEn: "Body Slam", cost: 35 }, { name: "かみくだく", nameEn: "Crunch", cost: 45 }, { name: "くさわけ", nameEn: "Trailblaze", cost: 45 }
+                ]
+            },
+            {
+                name: "マンタイン", nameEn: "Mantine",
+                fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }, { name: "たねマシンガン", nameEn: "Bullet Seed", energy: 13, turns: 3 }],
+                chargedMoves: [
+                    { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }, { name: "バブルこうせん", nameEn: "Bubble Beam", cost: 40 }, { name: "みずのはどう", nameEn: "Water Pulse", cost: 50 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }
+                ]
+            },
+            {
+                name: "ペリッパー", nameEn: "Pelipper",
+                fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "ウェザーボール(水)", nameEn: "Weather Ball (Water)", cost: 35 }, { name: "ぼうふう", nameEn: "Hurricane", cost: 65 }
+                ]
+            },
+            {
+                name: "ハガネール", nameEn: "Steelix",
+                fastMoves: [{ name: "ドラゴンテール", nameEn: "Dragon Tail", energy: 12, turns: 3 }, { name: "かみなりのキバ", nameEn: "Thunder Fang", energy: 6, turns: 2 }],
+                chargedMoves: [
+                    { name: "ワイドブレイカー", nameEn: "Breaking Swipe", cost: 50 }, { name: "じしん", nameEn: "Earthquake", cost: 65 }, { name: "サイコファング", nameEn: "Psychic Fangs", cost: 35 }, { name: "かみくだく", nameEn: "Crunch", cost: 45 }
+                ]
+            },
+            {
+                name: "バクフーン", nameEn: "Typhlosion",
+                fastMoves: [{ name: "やきつくす", nameEn: "Incinerate", energy: 20, turns: 5 }, { name: "シャドークロー", nameEn: "Shadow Claw", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "ブラストバーン", nameEn: "Blast Burn", cost: 50 }, { name: "かみなりパンチ", nameEn: "Thunder Punch", cost: 40 }, { name: "ソーラービーム", nameEn: "Solar Beam", cost: 80 }
+                ]
+            },
+            {
+                name: "ルンパッパ", nameEn: "Ludicolo",
+                fastMoves: [{ name: "おどろかす", nameEn: "Astonish", energy: 10, turns: 3 }],
+                chargedMoves: [
+                    { name: "ウェザーボール(水)", nameEn: "Weather Ball (Water)", cost: 35 }, { name: "リーフストーム", nameEn: "Leaf Storm", cost: 55 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }
+                ]
+            },
+            {
+                name: "イワパレス", nameEn: "Crustle",
+                fastMoves: [{ name: "うちおとす", nameEn: "Smack Down", energy: 8, turns: 3 }, { name: "れんぞくぎり", nameEn: "Fury Cutter", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "シザークロス", nameEn: "X-Scissor", cost: 40 }, { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }, { name: "がんせきほう", nameEn: "Rock Wrecker", cost: 50 }
+                ]
+            },
+            {
+                name: "オーダイル", nameEn: "Feraligatr",
+                fastMoves: [{ name: "シャドークロー", nameEn: "Shadow Claw", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "ハイドロカノン", nameEn: "Hydro Cannon", cost: 40 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }, { name: "かみくだく", nameEn: "Crunch", cost: 45 }
+                ]
+            },
+            {
+                name: "ヌオー", nameEn: "Quagsire",
+                fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "どろばくだん", nameEn: "Mud Bomb", cost: 45 }, { name: "アクアテール", nameEn: "Aqua Tail", cost: 35 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }, { name: "ヘドロばくだん", nameEn: "Sludge Bomb", cost: 50 }
+                ]
+            },
+            {
+                name: "ゲッコウガ", nameEn: "Greninja",
+                fastMoves: [{ name: "みずしゅりけん", nameEn: "Water Shuriken", energy: 14, turns: 3 }],
+                chargedMoves: [
+                    { name: "ハイドロカノン", nameEn: "Hydro Cannon", cost: 40 }, { name: "つじぎり", nameEn: "Night Slash", cost: 35 }, { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }
+                ]
+            },
+            {
+                name: "バルジーナ", nameEn: "Mandibuzz",
+                fastMoves: [{ name: "バークアウト", nameEn: "Snarl", energy: 12, turns: 3 }, { name: "エアスラッシュ", nameEn: "Air Slash", energy: 9, turns: 3 }],
+                chargedMoves: [
+                    { name: "イカサマ", nameEn: "Foul Play", cost: 45 }, { name: "つばめがえし", nameEn: "Aerial Ace", cost: 40 }, { name: "あくのはどう", nameEn: "Dark Pulse", cost: 50 }
+                ]
+            },
+            {
+                name: "ピジョット", nameEn: "Pidgeot",
+                fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }, { name: "かぜおこし", nameEn: "Gust", energy: 12, turns: 4 }],
+                chargedMoves: [
+                    { name: "フェザーダンス", nameEn: "Feather Dance", cost: 50 }, { name: "ブレイブバード", nameEn: "Brave Bird", cost: 55 }, { name: "ねっぷう", nameEn: "Heat Wave", cost: 45 }, { name: "エアカッター", nameEn: "Air Cutter", cost: 35 }
+                ]
+            },
+            {
+                name: "ナマズン", nameEn: "Whiscash",
+                fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "どろばくだん", nameEn: "Mud Bomb", cost: 45 }, { name: "ねっとう", nameEn: "Scald", cost: 50 }, { name: "ふぶき", nameEn: "Blizzard", cost: 75 }
+                ]
+            },
+            {
+                name: "ブラッキー", nameEn: "Umbreon",
+                fastMoves: [{ name: "バークアウト", nameEn: "Snarl", energy: 13, turns: 3 }],
+                chargedMoves: [
+                    { name: "イカサマ", nameEn: "Foul Play", cost: 40 }, { name: "とっておき", nameEn: "Last Resort", cost: 55 }, { name: "サイコキネシス", nameEn: "Psychic", cost: 55 }
+                ]
+            },
+            {
+                name: "カメックス", nameEn: "Blastoise",
+                fastMoves: [{ name: "みずでっぽう", nameEn: "Water Gun", energy: 3, turns: 1 }, { name: "ころがる", nameEn: "Rollout", energy: 13, turns: 3 }],
+                chargedMoves: [
+                    { name: "ハイドロカノン", nameEn: "Hydro Cannon", cost: 40 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }, { name: "ロケットずつき", nameEn: "Skull Bash", cost: 75 }
+                ]
+            },
+            {
+                name: "ジュゴン", nameEn: "Dewgong",
+                fastMoves: [{ name: "こおりのつぶて", nameEn: "Ice Shard", energy: 10, turns: 3 }],
+                chargedMoves: [
+                    { name: "こごえるかぜ", nameEn: "Icy Wind", cost: 45 }, { name: "ドリルライナー", nameEn: "Drill Run", cost: 45 }, { name: "アクアジェット", nameEn: "Aqua Jet", cost: 40 }
+                ]
+            },
+            {
+                name: "ハクリュー", nameEn: "Dragonair",
+                fastMoves: [{ name: "りゅうのいぶき", nameEn: "Dragon Breath", energy: 3, turns: 1 }],
+                chargedMoves: [
+                    { name: "アクアテール", nameEn: "Aqua Tail", cost: 35 }, { name: "のしかかり", nameEn: "Body Slam", cost: 35 }, { name: "りゅうのはどう", nameEn: "Dragon Pulse", cost: 60 }
+                ]
+            },
+            {
+                name: "ガラルマタドガス", nameEn: "Galarian Weezing",
+                fastMoves: [{ name: "ようせいのかぜ", nameEn: "Fairy Wind", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "オーバーヒート", nameEn: "Overheat", cost: 65 }, { name: "ぶんまわす", nameEn: "Brutal Swing", cost: 60 }, { name: "じゃれつく", nameEn: "Play Rough", cost: 60 }, { name: "ヘドロばくだん", nameEn: "Sludge Bomb", cost: 50 }
+                ]
+            },
+            {
+                name: "アクジキング", nameEn: "Guzzlord",
+                fastMoves: [{ name: "ドラゴンテール", nameEn: "Dragon Tail", energy: 12, turns: 3 }, { name: "バークアウト", nameEn: "Snarl", energy: 13, turns: 3 }],
+                chargedMoves: [
+                    { name: "ぶんまわす", nameEn: "Brutal Swing", cost: 35 }, { name: "ドラゴンクロー", nameEn: "Dragon Claw", cost: 50 }, { name: "ヘドロばくだん", nameEn: "Sludge Bomb", cost: 50 }
+                ]
+            },
+            {
+                name: "ヤルキモノ", nameEn: "Vigoroth",
+                fastMoves: [{ name: "カウンター", nameEn: "Counter", energy: 6, turns: 2 }],
+                chargedMoves: [
+                    { name: "のしかかり", nameEn: "Body Slam", cost: 35 }, { name: "じならし", nameEn: "Bulldoze", cost: 45 }, { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }, { name: "かわらわり", nameEn: "Brick Break", cost: 40 }
+                ]
+            },
+            {
+                name: "ニョロボン", nameEn: "Poliwrath",
+                fastMoves: [{ name: "カウンター", nameEn: "Counter", energy: 6, turns: 2 }, { name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "ねっとう", nameEn: "Scald", cost: 50 }, { name: "こごえるかぜ", nameEn: "Icy Wind", cost: 45 }, { name: "ばくれつパンチ", nameEn: "Dynamic Punch", cost: 45 }
+                ]
+            },
+            {
+                name: "フシギバナ", nameEn: "Venusaur",
+                fastMoves: [{ name: "つるのムチ", nameEn: "Vine Whip", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "ハードプラント", nameEn: "Frenzy Plant", cost: 45 }, { name: "ヘドロばくだん", nameEn: "Sludge Bomb", cost: 50 }, { name: "ヘドロこうげき", nameEn: "Sludge", cost: 40 }
+                ]
+            },
+            {
+                name: "レジドラゴ", nameEn: "Regidrago",
+                fastMoves: [{ name: "りゅうのいぶき", nameEn: "Dragon Breath", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "ドラゴンエナジー", nameEn: "Dragon Energy", cost: 45 }, { name: "はさむ", nameEn: "Vise Grip", cost: 40 }, { name: "はかいこうせん", nameEn: "Hyper Beam", cost: 80 }
+                ]
+            },
+            {
+                name: "カラマネロ", nameEn: "Malamar",
+                fastMoves: [{ name: "サイコウェーブ", nameEn: "Psywave", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "イカサマ", nameEn: "Foul Play", cost: 40 }, { name: "ばかぢから", nameEn: "Superpower", cost: 40 }, { name: "はかいこうせん", nameEn: "Hyper Beam", cost: 80 }
+                ]
+            },
+            {
+                name: "ホルード", nameEn: "Diggersby",
+                fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }, { name: "でんこうせっか", nameEn: "Quick Attack", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "ほのおのパンチ", nameEn: "Fire Punch", cost: 40 }, { name: "ねっさのだいち", nameEn: "Scorching Sands", cost: 50 }, { name: "はかいこうせん", nameEn: "Hyper Beam", cost: 80 }
+                ]
+            },
+            {
+                name: "オーロット", nameEn: "Trevenant",
+                fastMoves: [{ name: "シャドークロー", nameEn: "Shadow Claw", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "タネばくだん", nameEn: "Seed Bomb", cost: 40 }, { name: "シャドーボール", nameEn: "Shadow Ball", cost: 50 }, { name: "イカサマ", nameEn: "Foul Play", cost: 40 }
+                ]
+            },
+            {
+                name: "ガブリアス", nameEn: "Garchomp",
+                fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 },{ name: "ドラゴンテール", nameEn: "Dragon Tail", energy: 12, turns: 3 }],
+                chargedMoves: [
+                    { name: "げきりん", nameEn: "Outrage", cost: 60 }, { name: "すなじごく", nameEn: "Sand Tomb", cost: 40 }, { name: "たつまき", nameEn: "Twister", cost: 40 }, { name: "ねっさのだいち", nameEn: "Scorching Sands", cost: 50 }
+                ]
+            },
+            {
+                name: "ギャラドス", nameEn: "Gyarados",
+                fastMoves: [{ name: "りゅうのいぶき", nameEn: "Dragon Breath", energy: 3, turns: 1 }, { name: "たきのぼり", nameEn: "Waterfall", energy: 7, turns: 3 }],
+                chargedMoves: [
+                    { name: "アクアテール", nameEn: "Aqua Tail", cost: 35 }, { name: "かみくだく", nameEn: "Crunch", cost: 45 }, { name: "たつまき", nameEn: "Twister", cost: 40 }
+                ]
+            },
+            {
+                name: "チャーレム", nameEn: "Medicham",
+                fastMoves: [{ name: "カウンター", nameEn: "Counter", energy: 7, turns: 2 }, { name: "サイコカッター", nameEn: "Psycho Cut", energy: 7, turns: 3 }],
+                chargedMoves: [
+                    { name: "れいとうパンチ", nameEn: "Ice Punch", cost: 40 }, { name: "サイコキネシス", nameEn: "Psychic", cost: 55 }, { name: "グロウパンチ", nameEn: "Power-Up Punch", cost: 35 }
+                ]
+            },
+            {
+                name: "オコリザル", nameEn: "Primeape",
+                fastMoves: [{ name: "けたぐり", nameEn: "Low Kick", energy: 8, turns: 2 }, { name: "からてチョップ", nameEn: "Karate Chop", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "つじぎり", nameEn: "Night Slash", cost: 35 }, { name: "れいとうパンチ", nameEn: "Ice Punch", cost: 40 }, { name: "インファイト", nameEn: "Close Combat", cost: 45 }, { name: "ふんどのこぶし", nameEn: "Rage Fist", cost: 35 }
+                ]
+            },
+            {
+                name: "ラグラージ", nameEn: "Swampert",
+                fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "ハイドロカノン", nameEn: "Hydro Cannon", cost: 40 }, { name: "じしん", nameEn: "Earthquake", cost: 65 }, { name: "ヘドロこうげき", nameEn: "Sludge", cost: 40 }
+                ]
+            },
+            {
+                name: "プクリン", nameEn: "Wigglytuff",
+                fastMoves: [{ name: "あまえる", nameEn: "Charm", energy: 8, turns: 3 }],
+                chargedMoves: [
+                    { name: "スピードスター", nameEn: "Swift", cost: 35 }, { name: "こごえるかぜ", nameEn: "Icy Wind", cost: 45 }, { name: "チャームボイス", nameEn: "Disarming Voice", cost: 45 }
+                ]
+            },
+            {
+                name: "リザードン", nameEn: "Charizard",
+                fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }, { name: "ひのこ", nameEn: "Ember", energy: 9, turns: 2 }, { name: "りゅうのいぶき", nameEn: "Dragon Breath", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "ブラストバーン", nameEn: "Blast Burn", cost: 50 }, { name: "ドラゴンクロー", nameEn: "Dragon Claw", cost: 50 }, { name: "エアカッター", nameEn: "Air Cutter", cost: 35 }
+                ]
+            },
+            {
+                name: "アローララッタ", nameEn: "Alolan Raticate",
+                fastMoves: [{ name: "でんこうせっか", nameEn: "Quick Attack", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "かみくだく", nameEn: "Crunch", cost: 45 }, { name: "ひっさつまえば", nameEn: "Hyper Fang", cost: 50 }, { name: "はかいこうせん", nameEn: "Hyper Beam", cost: 80 }
+                ]
+            },
+            {
+                name: "フラージェス", nameEn: "Florges",
+                fastMoves: [{ name: "ようせいのかぜ", nameEn: "Fairy Wind", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "チャームボイス", nameEn: "Disarming Voice", cost: 45 }, { name: "ムーンフォース", nameEn: "Moonblast", cost: 60 }, { name: "サイコキネシス", nameEn: "Psychic", cost: 55 }, 
+                    { name: "くさわけ", nameEn: "Trailblaze", cost: 45 }, { name: "ひやみず", nameEn: "Chilling Water", cost: 45 }
+                ]
+            },
+            {
+                name: "レジスチル", nameEn: "Registeel",
+                fastMoves: [{ name: "ロックオン", nameEn: "Lock-On", energy: 5, turns: 1 }],
+                chargedMoves: [
+                    { name: "きあいだま", nameEn: "Focus Blast", cost: 75 }, { name: "ラスターカノン", nameEn: "Flash Cannon", cost: 70 }, { name: "でんじほう", nameEn: "Zap Cannon", cost: 80 }
+                ]
+            },
+            {
+                name: "デオキシス(DF)", nameEn: "Deoxys (Defense)",
+                fastMoves: [{ name: "カウンター", nameEn: "Counter", energy: 6, turns: 2 }],
+                chargedMoves: [
+                    { name: "サイコブースト", nameEn: "Psycho Boost", cost: 35 }, { name: "１０まんボルト", nameEn: "Thunderbolt", cost: 55 }, { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }
+                ]
+            },
+            {
+                name: "クレセリア", nameEn: "Cresselia",
+                fastMoves: [{ name: "サイコカッター", nameEn: "Psycho Cut", energy: 9, turns: 2 }, { name: "ねんりき", nameEn: "Confusion", energy: 14, turns: 4 }],
+                chargedMoves: [
+                    { name: "ムーンフォース", nameEn: "Moonblast", cost: 60 }, { name: "くさむすび", nameEn: "Grass Knot", cost: 50 }, { name: "みらいよち", nameEn: "Future Sight", cost: 65 }
+                ]
+            },
+            {
+                name: "ギラティナ(アナザー)", nameEn: "Giratina (Altered)",
+                fastMoves: [{ name: "シャドークロー", nameEn: "Shadow Claw", energy: 8, turns: 2 }, { name: "りゅうのいぶき", nameEn: "Dragon Breath", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "ドラゴンクロー", nameEn: "Dragon Claw", cost: 50 }, { name: "かげうち", nameEn: "Shadow Sneak", cost: 50 }, { name: "げんしのちから", nameEn: "Ancient Power", cost: 45 }, { name: "シャドーダイブ", nameEn: "Shadow Force", cost: 90 }
+                ]
+            }
+        ];
+
+        // --- App State ---
+        let state = {
+            mode: 'standard', // 'standard' or 'advanced'
+            showHint: false, // 初心者ヒントの表示状態
+            question: null,
+            inputCount: '',
+            inputTurns: '',
+            feedback: null,
+            score: 0,
+            streak: 0
+        };
+
+        // --- DOM Elements ---
+        const els = {
+            dbSizeDisplay: document.getElementById('db-size-display'),
+            scoreDisplay: document.getElementById('score-display'),
+            streakDisplay: document.getElementById('streak-display'),
+            btnStandard: document.getElementById('mode-standard-btn'),
+            btnAdvanced: document.getElementById('mode-advanced-btn'),
+            quizCard: document.getElementById('quiz-card'),
+            pokemonName: document.getElementById('pokemon-name'),
+            fastMoveName: document.getElementById('fast-move-name'),
+            chargedMoveName: document.getElementById('charged-move-name'),
+            questionArea: document.getElementById('question-area'),
+            inputCount: document.getElementById('input-count'),
+            inputTurns: document.getElementById('input-turns'),
+            submitBtn: document.getElementById('submit-btn'),
+            feedbackContainer: document.getElementById('feedback-container'),
+            form: document.getElementById('quiz-form'),
+            hintToggleBtn: document.getElementById('hint-toggle-btn'),
+            fastMoveHint: document.getElementById('fast-move-hint'),
+            chargedMoveHint: document.getElementById('charged-move-hint')
+        };
+
+        // --- Initialize ---
+        function init() {
+            lucide.createIcons();
+            els.dbSizeDisplay.textContent = `${POKEMON_DATABASE.length} Mons`;
+            
+            // Event Listeners
+            els.btnStandard.addEventListener('click', () => setMode('standard'));
+            els.btnAdvanced.addEventListener('click', () => setMode('advanced'));
+            els.hintToggleBtn.addEventListener('click', () => {
+                state.showHint = !state.showHint;
+                render();
+            });
+            
+            els.inputCount.addEventListener('input', (e) => {
+                state.inputCount = e.target.value;
+                updateSubmitButtonState();
+            });
+            els.inputTurns.addEventListener('input', (e) => {
+                state.inputTurns = e.target.value;
+                updateSubmitButtonState();
+            });
+
+            els.form.addEventListener('submit', handleCheck);
+
+            generateQuestion();
+        }
+
+        // --- Logic ---
+        function setMode(mode) {
+            state.mode = mode;
+            generateQuestion();
+        }
+
+        function generateQuestion() {
+            const pokemon = POKEMON_DATABASE[Math.floor(Math.random() * POKEMON_DATABASE.length)];
+            const fastMove = pokemon.fastMoves[Math.floor(Math.random() * pokemon.fastMoves.length)];
+            const chargedMove = pokemon.chargedMoves[Math.floor(Math.random() * pokemon.chargedMoves.length)];
+
+            const totalNeededCount = Math.ceil(chargedMove.cost / fastMove.energy);
+            let alreadyDone = 0;
+            let answerCount = totalNeededCount;
+
+            if (state.mode === 'advanced') {
+                if (totalNeededCount > 1) {
+                    alreadyDone = Math.floor(Math.random() * (totalNeededCount - 1)) + 1;
+                    answerCount = totalNeededCount - alreadyDone;
+                }
+            }
+
+            state.question = {
+                pokemon: pokemon.name,
+                pokemonEn: pokemon.nameEn,
+                fastMove: fastMove.name,
+                fastMoveEn: fastMove.nameEn,
+                fastEnergy: fastMove.energy,
+                fastTurns: fastMove.turns,
+                chargedMove: chargedMove.name,
+                chargedMoveEn: chargedMove.nameEn,
+                chargedCost: chargedMove.cost,
+                alreadyDone,
+                answerCount: answerCount,
+                answerTurns: answerCount * fastMove.turns
+            };
+            
+            state.feedback = null;
+            state.inputCount = '';
+            state.inputTurns = '';
+            
+            render();
+            els.inputCount.focus();
+        }
+
+        function handleCheck(e) {
+            e.preventDefault();
+            if (!state.question) return;
+            
+            if (state.feedback) {
+                generateQuestion();
+                return;
+            }
+            
+            if (state.inputCount === '' && state.inputTurns === '') return;
+
+            const numCount = state.inputCount !== '' ? parseInt(state.inputCount) : null;
+            const numTurns = state.inputTurns !== '' ? parseInt(state.inputTurns) : null;
+
+            if (numCount === null) {
+                state.feedback = {
+                    isCorrect: false,
+                    messageJp: `回数が入力されてないよ！正解は ${state.question.answerCount} 回（${state.question.answerTurns} ターン）。`,
+                    messageEn: `Count is missing! Answer is ${state.question.answerCount} counts (${state.question.answerTurns} turns).`
+                };
+                state.streak = 0;
+                render();
+                return;
+            }
+
+            if (numTurns === null) {
+                state.feedback = {
+                    isCorrect: false,
+                    messageJp: `ターン数が入力されてないよ！正解は ${state.question.answerCount} 回（${state.question.answerTurns} ターン）。`,
+                    messageEn: `Turns is missing! Answer is ${state.question.answerCount} counts (${state.question.answerTurns} turns).`
+                };
+                state.streak = 0;
+                render();
+                return;
+            }
+
+            const isCountCorrect = numCount === state.question.answerCount;
+            const isTurnsCorrect = numTurns === state.question.answerTurns;
+
+            if (isCountCorrect && isTurnsCorrect) {
+                state.feedback = { 
+                    isCorrect: true, 
+                    messageJp: 'パーフェクト！回数もターン数も完璧！',
+                    messageEn: 'Perfect! Both count and turns are correct!'
+                };
+                state.score++;
+                state.streak++;
+            } else if (isCountCorrect && !isTurnsCorrect) {
+                state.feedback = {
+                    isCorrect: false,
+                    messageJp: `おしい！回数は ${state.question.answerCount} 回で正解だけど、ターン数は ${state.question.answerTurns} ターンだよ。（1回 = ${state.question.fastTurns}ターン）`,
+                    messageEn: `Close! Count is correct, but turns should be ${state.question.answerTurns}.`
+                };
+                state.streak = 0;
+            } else if (!isCountCorrect && isTurnsCorrect) {
+                state.feedback = {
+                    isCorrect: false,
+                    messageJp: `ターン数は合ってるけど回数が違うよ！正解は ${state.question.answerCount} 回（${state.question.answerTurns} ターン）です。`,
+                    messageEn: `Turns correct, but count is wrong. Answer is ${state.question.answerCount}.`
+                };
+                state.streak = 0;
+            } else {
+                state.feedback = {
+                    isCorrect: false,
+                    messageJp: `残念... 正解は ${state.question.answerCount} 回（${state.question.answerTurns} ターン）です。`,
+                    messageEn: `Try Again... Correct answer is ${state.question.answerCount} counts (${state.question.answerTurns} turns).`
+                };
+                state.streak = 0;
+            }
+
+            render();
+            els.submitBtn.focus();
+        }
+
+        // --- Render ---
+        function render() {
+            // Stats
+            els.scoreDisplay.textContent = state.score;
+            els.streakDisplay.textContent = state.streak;
+
+            // Mode Buttons
+            const activeModeCls = "flex-1 py-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center shadow-sm";
+            const inactiveModeCls = "flex-1 py-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center text-slate-400 hover:bg-slate-50";
+            
+            if (state.mode === 'standard') {
+                els.btnStandard.className = `${activeModeCls} bg-sky-100 text-blue-700`;
+                els.btnAdvanced.className = inactiveModeCls;
+            } else {
+                els.btnStandard.className = inactiveModeCls;
+                els.btnAdvanced.className = `${activeModeCls} bg-orange-100 text-orange-700`;
+            }
+
+            if (!state.question) return;
+
+            // Show Card
+            els.quizCard.classList.remove('hidden');
+
+            // Set Pokemon Info
+            els.pokemonName.innerHTML = `${state.question.pokemon}<br/><span class="text-[14px] opacity-70 block -mt-1 font-bold">${state.question.pokemonEn}</span>`;
+            els.fastMoveName.innerHTML = `${state.question.fastMove}<br/><span class="text-[10px] opacity-70 font-normal leading-tight">${state.question.fastMoveEn}</span>`;
+            els.chargedMoveName.innerHTML = `${state.question.chargedMove}<br/><span class="text-[10px] opacity-70 font-normal leading-tight">${state.question.chargedMoveEn}</span>`;
+
+            // Hint Logic
+            if (state.showHint) {
+                els.hintToggleBtn.className = "text-[10px] bg-yellow-400 text-yellow-900 px-2.5 py-1 rounded-full font-bold shadow-sm border border-yellow-500 flex items-center gap-1 transition-colors hover:bg-yellow-500";
+                els.hintToggleBtn.innerHTML = `<i data-lucide="lightbulb-off" class="w-3 h-3"></i> <span>ヒントを隠す / Hide</span>`;
+                els.fastMoveHint.classList.remove('hidden');
+                els.chargedMoveHint.classList.remove('hidden');
+                els.fastMoveHint.innerHTML = `<span class="text-[9px] opacity-80">E:</span> +${state.question.fastEnergy} <span class="mx-0.5 opacity-50">|</span> <span class="text-[9px] opacity-80">T:</span> ${state.question.fastTurns}`;
+                els.chargedMoveHint.innerHTML = `<span class="text-[9px] opacity-80">Cost:</span> -${state.question.chargedCost}`;
+            } else {
+                els.hintToggleBtn.className = "text-[10px] bg-yellow-50 text-yellow-700 px-2.5 py-1 rounded-full font-bold shadow-sm border border-yellow-200 flex items-center gap-1 transition-colors hover:bg-yellow-100";
+                els.hintToggleBtn.innerHTML = `<i data-lucide="lightbulb" class="w-3 h-3"></i> <span>初心者ヒント / Hint</span>`;
+                els.fastMoveHint.classList.add('hidden');
+                els.chargedMoveHint.classList.add('hidden');
+            }
+
+            // Question Text
+            if (state.mode === 'standard') {
+                els.questionArea.innerHTML = `
+                    <div class="space-y-1.5">
+                        <p class="text-[14px] font-bold text-slate-700 leading-relaxed">
+                            「<span class="text-blue-600">${state.question.chargedMove}</span>」が飛んでくるまで、<br/>
+                            技1を何回<span class="text-orange-600">（何ターン）</span>数えればいい？
+                        </p>
+                        <p class="text-[10px] font-bold text-slate-400 leading-relaxed">
+                            How many counts / turns to reach "<span class="text-blue-400">${state.question.chargedMoveEn}</span>"?
+                        </p>
+                    </div>
+                `;
+            } else {
+                els.questionArea.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="inline-flex flex-col items-center justify-center bg-orange-50 text-orange-700 py-2 px-4 rounded-xl border border-orange-200 shadow-sm w-full">
+                            <div class="flex items-center gap-1.5 text-xs font-bold">
+                                <i data-lucide="brain" class="w-3.5 h-3.5 text-orange-500"></i>
+                                すでに ${state.question.alreadyDone} 回打たれた！
+                            </div>
+                            <div class="text-[9px] opacity-70 font-bold mt-0.5">Already used ${state.question.alreadyDone} times!</div>
+                        </div>
+                        <div class="space-y-1.5 mt-2">
+                            <p class="text-[14px] font-bold text-slate-700 leading-relaxed">
+                                あと何回<span class="text-orange-600">（何ターン）</span>で<br/>「<span class="text-blue-600">${state.question.chargedMove}</span>」が来る？
+                            </p>
+                            <p class="text-[10px] font-bold text-slate-400 leading-relaxed">
+                                How many more counts / turns for "<span class="text-blue-400">${state.question.chargedMoveEn}</span>"?
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Inputs
+            els.inputCount.value = state.inputCount;
+            els.inputTurns.value = state.inputTurns;
+            els.inputCount.disabled = !!state.feedback;
+            els.inputTurns.disabled = !!state.feedback;
+
+            // Button & Feedback
+            updateSubmitButtonState();
+            
+            if (!state.feedback) {
+                els.feedbackContainer.innerHTML = '';
+            } else {
+                const isCorrect = state.feedback.isCorrect;
+                const bgClass = isCorrect ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200';
+                const iconColor = isCorrect ? 'text-green-600' : 'text-red-600';
+                const iconName = isCorrect ? 'check-circle-2' : 'x-circle';
+                const titleText = isCorrect ? 'Excellent!' : 'Check your answer';
+
+                els.feedbackContainer.innerHTML = `
+                    <div class="flex items-start gap-3 p-4 rounded-2xl animate-feedback shadow-sm border ${bgClass}">
+                        <i data-lucide="${iconName}" class="w-5 h-5 shrink-0 mt-0.5 ${iconColor}"></i>
+                        <div class="flex flex-col gap-1 w-full">
+                            <p class="font-bold text-[11px] uppercase tracking-widest opacity-80 ${iconColor}">${titleText}</p>
+                            <p class="font-bold text-[13px] leading-snug">${state.feedback.messageJp}</p>
+                            <p class="font-bold text-[10px] leading-snug opacity-70">${state.feedback.messageEn}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            lucide.createIcons();
+        }
+
+        function updateSubmitButtonState() {
+            if (!state.feedback) {
+                const isDisabled = (state.inputCount === '' && state.inputTurns === '');
+                els.submitBtn.disabled = isDisabled;
+                els.submitBtn.className = "bg-emerald-500 hover:bg-emerald-400 border-b-4 border-emerald-700 disabled:border-b-0 disabled:translate-y-1 disabled:bg-slate-300 disabled:text-slate-500 text-white w-full py-3.5 rounded-2xl font-black transition-all flex items-center justify-center gap-2 shadow-md text-lg tracking-wide cursor-pointer";
+                els.submitBtn.innerHTML = `<span>判定 / Check</span><i data-lucide="chevron-right" class="w-6 h-6"></i>`;
+            } else {
+                els.submitBtn.disabled = false;
+                els.submitBtn.className = "bg-sky-500 hover:bg-sky-400 border-b-4 border-sky-700 text-white w-full py-3.5 rounded-2xl font-black transition-all flex items-center justify-center gap-2 shadow-md text-lg tracking-wide cursor-pointer";
+                els.submitBtn.innerHTML = `<span>次へ / Next</span><i data-lucide="refresh-cw" class="w-6 h-6"></i>`;
+            }
+            lucide.createIcons();
+        }
+
+        // Run
+        init();
+
+    </script>
+</body>
+</html>
