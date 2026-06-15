@@ -178,6 +178,7 @@
     <!-- App Logic -->
     <script>
         // --- GBL (PvP) Data Section ---
+        // 新シーズンのコスト変更や新ポケモンを統合しています。
         const POKEMON_DATABASE = [
             {
                 name: "アローラキュウコン", nameEn: "Alolan Ninetales",
@@ -197,23 +198,26 @@
             {
                 name: "トリデプス", nameEn: "Bastiodon",
                 fastMoves: [{ name: "うちおとす", nameEn: "Smack Down", energy: 8, turns: 3 }],
+                // Cost Update: ラスターカノン 75 -> 65
                 chargedMoves: [
-                    { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }, { name: "かえんほうしゃ", nameEn: "Flamethrower", cost: 55 }, { name: "ラスターカノン", nameEn: "Flash Cannon", cost: 75 }
+                    { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }, { name: "かえんほうしゃ", nameEn: "Flamethrower", cost: 55 }, { name: "ラスターカノン", nameEn: "Flash Cannon", cost: 65 }
                 ]
             },
             {
                 name: "フライゴン", nameEn: "Flygon",
                 fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }, { name: "ドラゴンテール", nameEn: "Dragon Tail", energy: 12, turns: 3 }],
+                // Cost Update: だいちのちから 55 -> 50
                 chargedMoves: [
-                    { name: "たつまき", nameEn: "Twister", cost: 40 }, { name: "だいちのちから", nameEn: "Earth Power", cost: 55 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 },
+                    { name: "たつまき", nameEn: "Twister", cost: 40 }, { name: "だいちのちから", nameEn: "Earth Power", cost: 50 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 },
                     { name: "ドラゴンクロー", nameEn: "Dragon Claw", cost: 50 }, { name: "ねっさのだいち", nameEn: "Scorching Sands", cost: 50 }, { name: "ばくおんぱ", nameEn: "Boomburst", cost: 70 }
                 ]
             },
             {
                 name: "トリトドン", nameEn: "Gastrodon",
                 fastMoves: [{ name: "どろかけ", nameEn: "Mud-Slap", energy: 10, turns: 3 }],
+                // Cost Update: だいちのちから 55 -> 50
                 chargedMoves: [
-                    { name: "ドラゴンクロー", nameEn: "Dragon Claw", cost: 35 }, { name: "だいちのちから", nameEn: "Earth Power", cost: 55 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }
+                    { name: "ドラゴンクロー", nameEn: "Dragon Claw", cost: 35 }, { name: "だいちのちから", nameEn: "Earth Power", cost: 50 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }
                 ]
             },
             {
@@ -254,8 +258,9 @@
             {
                 name: "アローラサンドパン", nameEn: "Alolan Sandslash",
                 fastMoves: [{ name: "こなゆき", nameEn: "Powder Snow", energy: 8, turns: 2 }, { name: "シャドークロー", nameEn: "Shadow Claw", energy: 8, turns: 2 }],
+                // Cost Update: ドリルライナー 45 -> 40
                 chargedMoves: [
-                    { name: "れいとうパンチ", nameEn: "Ice Punch", cost: 40 }, { name: "ドリルライナー", nameEn: "Drill Run", cost: 45 }, { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }
+                    { name: "れいとうパンチ", nameEn: "Ice Punch", cost: 40 }, { name: "ドリルライナー", nameEn: "Drill Run", cost: 40 }, { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }
                 ]
             },
             {
@@ -331,8 +336,9 @@
             {
                 name: "ノコッチ", nameEn: "Dunsparce",
                 fastMoves: [{ name: "ころがる", nameEn: "Rollout", energy: 13, turns: 3 }, { name: "おどろかす", nameEn: "Astonish", energy: 10, turns: 3 }],
+                // Cost Update: ドリルライナー 45 -> 40
                 chargedMoves: [
-                    { name: "ドリルライナー", nameEn: "Drill Run", cost: 45 }, { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }                ]
+                    { name: "ドリルライナー", nameEn: "Drill Run", cost: 40 }, { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }                ]
             },
             {
                 name: "オオタチ", nameEn: "Furret",
@@ -477,15 +483,17 @@
             {
                 name: "マンタイン", nameEn: "Mantine",
                 fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }, { name: "たねマシンガン", nameEn: "Bullet Seed", energy: 13, turns: 3 }],
+                // Move Update: たつまき 追加
                 chargedMoves: [
-                    { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }, { name: "バブルこうせん", nameEn: "Bubble Beam", cost: 40 }, { name: "みずのはどう", nameEn: "Water Pulse", cost: 50 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }
+                    { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }, { name: "バブルこうせん", nameEn: "Bubble Beam", cost: 40 }, { name: "みずのはどう", nameEn: "Water Pulse", cost: 50 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }, { name: "たつまき", nameEn: "Twister", cost: 40 }
                 ]
             },
             {
                 name: "ペリッパー", nameEn: "Pelipper",
                 fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }],
+                // Cost Update: ぼうふう 65 -> 60
                 chargedMoves: [
-                    { name: "ウェザーボール(水)", nameEn: "Weather Ball (Water)", cost: 35 }, { name: "ぼうふう", nameEn: "Hurricane", cost: 65 }
+                    { name: "ウェザーボール(水)", nameEn: "Weather Ball (Water)", cost: 35 }, { name: "ぼうふう", nameEn: "Hurricane", cost: 60 }
                 ]
             },
             {
@@ -547,8 +555,9 @@
             {
                 name: "ピジョット", nameEn: "Pidgeot",
                 fastMoves: [{ name: "つばさでうつ", nameEn: "Wing Attack", energy: 8, turns: 2 }, { name: "かぜおこし", nameEn: "Gust", energy: 12, turns: 4 }],
+                // Move Update: たつまき 追加
                 chargedMoves: [
-                    { name: "フェザーダンス", nameEn: "Feather Dance", cost: 50 }, { name: "ブレイブバード", nameEn: "Brave Bird", cost: 55 }, { name: "ねっぷう", nameEn: "Heat Wave", cost: 45 }, { name: "エアカッター", nameEn: "Air Cutter", cost: 35 }
+                    { name: "フェザーダンス", nameEn: "Feather Dance", cost: 50 }, { name: "ブレイブバード", nameEn: "Brave Bird", cost: 55 }, { name: "ねっぷう", nameEn: "Heat Wave", cost: 45 }, { name: "エアカッター", nameEn: "Air Cutter", cost: 35 }, { name: "たつまき", nameEn: "Twister", cost: 40 }
                 ]
             },
             {
@@ -575,8 +584,9 @@
             {
                 name: "ジュゴン", nameEn: "Dewgong",
                 fastMoves: [{ name: "こおりのつぶて", nameEn: "Ice Shard", energy: 10, turns: 3 }],
+                // Cost Update: ドリルライナー 45 -> 40
                 chargedMoves: [
-                    { name: "こごえるかぜ", nameEn: "Icy Wind", cost: 45 }, { name: "ドリルライナー", nameEn: "Drill Run", cost: 45 }, { name: "アクアジェット", nameEn: "Aqua Jet", cost: 40 }
+                    { name: "こごえるかぜ", nameEn: "Icy Wind", cost: 45 }, { name: "ドリルライナー", nameEn: "Drill Run", cost: 40 }, { name: "アクアジェット", nameEn: "Aqua Jet", cost: 40 }
                 ]
             },
             {
@@ -716,8 +726,9 @@
             {
                 name: "レジスチル", nameEn: "Registeel",
                 fastMoves: [{ name: "ロックオン", nameEn: "Lock-On", energy: 5, turns: 1 }],
+                // Cost Update: ラスターカノン 70 -> 65
                 chargedMoves: [
-                    { name: "きあいだま", nameEn: "Focus Blast", cost: 75 }, { name: "ラスターカノン", nameEn: "Flash Cannon", cost: 70 }, { name: "でんじほう", nameEn: "Zap Cannon", cost: 80 }
+                    { name: "きあいだま", nameEn: "Focus Blast", cost: 75 }, { name: "ラスターカノン", nameEn: "Flash Cannon", cost: 65 }, { name: "でんじほう", nameEn: "Zap Cannon", cost: 80 }
                 ]
             },
             {
@@ -739,6 +750,154 @@
                 fastMoves: [{ name: "シャドークロー", nameEn: "Shadow Claw", energy: 8, turns: 2 }, { name: "りゅうのいぶき", nameEn: "Dragon Breath", energy: 4, turns: 1 }],
                 chargedMoves: [
                     { name: "ドラゴンクロー", nameEn: "Dragon Claw", cost: 50 }, { name: "かげうち", nameEn: "Shadow Sneak", cost: 50 }, { name: "げんしのちから", nameEn: "Ancient Power", cost: 45 }, { name: "シャドーダイブ", nameEn: "Shadow Force", cost: 90 }
+                ]
+            },
+            // ======== NEW SEASON ADDITIONS ========
+            {
+                name: "ヌメイル", nameEn: "Sliggoo",
+                fastMoves: [{ name: "りゅうのいぶき", nameEn: "Dragon Breath", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "のしかかり", nameEn: "Body Slam", cost: 35 }, { name: "だくりゅう", nameEn: "Muddy Water", cost: 35 }, { name: "りゅうのはどう", nameEn: "Dragon Pulse", cost: 60 }
+                ]
+            },
+            {
+                name: "フレフワン", nameEn: "Aromatisse",
+                fastMoves: [{ name: "ようせいのかぜ", nameEn: "Fairy Wind", energy: 9, turns: 2 }, { name: "あまえる", nameEn: "Charm", energy: 8, turns: 3 }],
+                chargedMoves: [
+                    { name: "ムーンフォース", nameEn: "Moonblast", cost: 60 }, { name: "１０まんボルト", nameEn: "Thunderbolt", cost: 55 }, { name: "サイコキネシス", nameEn: "Psychic", cost: 55 }
+                ]
+            },
+            {
+                name: "ニンフィア", nameEn: "Sylveon",
+                fastMoves: [{ name: "ようせいのかぜ", nameEn: "Fairy Wind", energy: 9, turns: 2 }, { name: "あまえる", nameEn: "Charm", energy: 8, turns: 3 }],
+                chargedMoves: [
+                    { name: "サイコショック", nameEn: "Psyshock", cost: 40 }, { name: "ムーンフォース", nameEn: "Moonblast", cost: 60 }, { name: "シャドーボール", nameEn: "Shadow Ball", cost: 50 }
+                ]
+            },
+            {
+                name: "ガラルサンダー", nameEn: "Galarian Zapdos",
+                fastMoves: [{ name: "けたぐり", nameEn: "Low Kick", energy: 8, turns: 2 }, { name: "カウンター", nameEn: "Counter", energy: 6, turns: 2 }],
+                chargedMoves: [
+                    { name: "ブレイブバード", nameEn: "Brave Bird", cost: 55 }, { name: "インファイト", nameEn: "Close Combat", cost: 45 }, { name: "げんしのちから", nameEn: "Ancient Power", cost: 45 }
+                ]
+            },
+            {
+                name: "ウェニーバル", nameEn: "Quaquaval",
+                fastMoves: [{ name: "けたぐり", nameEn: "Low Kick", energy: 8, turns: 2 }, { name: "みずでっぽう", nameEn: "Water Gun", energy: 3, turns: 1 }],
+                chargedMoves: [
+                    { name: "アクアブレイク", nameEn: "Liquidation", cost: 45 }, { name: "インファイト", nameEn: "Close Combat", cost: 45 }, { name: "つばめがえし", nameEn: "Aerial Ace", cost: 45 }
+                ]
+            },
+            {
+                name: "ローブシン", nameEn: "Conkeldurr",
+                fastMoves: [{ name: "はっけい", nameEn: "Force Palm", energy: 13, turns: 3 }, { name: "カウンター", nameEn: "Counter", energy: 6, turns: 2 }],
+                chargedMoves: [
+                    { name: "ばくれつパンチ", nameEn: "Dynamic Punch", cost: 45 }, { name: "ぶんまわす", nameEn: "Brutal Swing", cost: 35 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }
+                ]
+            },
+            {
+                name: "ネオラント", nameEn: "Lumineon",
+                fastMoves: [{ name: "かぜおこし", nameEn: "Gust", energy: 12, turns: 4 }, { name: "たきのぼり", nameEn: "Waterfall", energy: 10, turns: 3 }],
+                chargedMoves: [
+                    { name: "ぎんいろのかぜ", nameEn: "Silver Wind", cost: 45 }, { name: "ふぶき", nameEn: "Blizzard", cost: 75 }, { name: "みずのはどう", nameEn: "Water Pulse", cost: 50 }
+                ]
+            },
+            {
+                name: "スワンナ", nameEn: "Swanna",
+                fastMoves: [{ name: "かぜおこし", nameEn: "Gust", energy: 12, turns: 4 }, { name: "みずでっぽう", nameEn: "Water Gun", energy: 3, turns: 1 }],
+                chargedMoves: [
+                    { name: "アクアジェット", nameEn: "Aqua Jet", cost: 40 }, { name: "バブルこうせん", nameEn: "Bubble Beam", cost: 40 }, { name: "ぼうふう", nameEn: "Hurricane", cost: 60 }
+                ]
+            },
+            {
+                name: "ギガイアス", nameEn: "Gigalith",
+                fastMoves: [{ name: "ロックオン", nameEn: "Lock-On", energy: 5, turns: 1 }, { name: "どろかけ", nameEn: "Mud-Slap", energy: 10, turns: 3 }],
+                chargedMoves: [
+                    { name: "メテオビーム", nameEn: "Meteor Beam", cost: 60 }, { name: "ばかぢから", nameEn: "Superpower", cost: 40 }, { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }
+                ]
+            },
+            {
+                name: "レディアン", nameEn: "Ledian",
+                fastMoves: [{ name: "ころがる", nameEn: "Rollout", energy: 13, turns: 3 }, { name: "むしくい", nameEn: "Bug Bite", energy: 3, turns: 1 }],
+                chargedMoves: [
+                    { name: "アクロバット", nameEn: "Acrobatics", cost: 45 }, { name: "ばくれつパンチ", nameEn: "Dynamic Punch", cost: 45 }, { name: "むしのさざめき", nameEn: "Bug Buzz", cost: 60 }
+                ]
+            },
+            {
+                name: "カクレオン", nameEn: "Kecleon",
+                fastMoves: [{ name: "したでなめる", nameEn: "Lick", energy: 3, turns: 1 }],
+                chargedMoves: [
+                    { name: "かみなりパンチ", nameEn: "Thunder Punch", cost: 40 }, { name: "ばくれつパンチ", nameEn: "Dynamic Punch", cost: 45 }, { name: "イカサマ", nameEn: "Foul Play", cost: 40 }
+                ]
+            },
+            {
+                name: "ミミロップ", nameEn: "Lopunny",
+                fastMoves: [{ name: "にどげり", nameEn: "Double Kick", energy: 13, turns: 3 }],
+                chargedMoves: [
+                    { name: "かみなりパンチ", nameEn: "Thunder Punch", cost: 40 }, { name: "シャドーボール", nameEn: "Shadow Ball", cost: 50 }, { name: "きあいだま", nameEn: "Focus Blast", cost: 75 }
+                ]
+            },
+            {
+                name: "メルメタル", nameEn: "Melmetal",
+                fastMoves: [{ name: "でんきショック", nameEn: "Thunder Shock", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "ばくれつパンチ", nameEn: "Dynamic Punch", cost: 45 }, { name: "ばかぢから", nameEn: "Superpower", cost: 40 }, { name: "いわなだれ", nameEn: "Rock Slide", cost: 45 }, { name: "ダブルアイアンバッシュ", nameEn: "Double Iron Bash", cost: 35 }
+                ]
+            },
+            {
+                name: "ガマゲロゲ", nameEn: "Seismitoad",
+                fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "こごえるかぜ", nameEn: "Icy Wind", cost: 45 }, { name: "だいちのちから", nameEn: "Earth Power", cost: 50 }, { name: "だくりゅう", nameEn: "Muddy Water", cost: 35 }
+                ]
+            },
+            {
+                name: "スターミー", nameEn: "Starmie",
+                fastMoves: [{ name: "みずでっぽう", nameEn: "Water Gun", energy: 3, turns: 1 }, { name: "サイコウェーブ", nameEn: "Psywave", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "アクアジェット", nameEn: "Aqua Jet", cost: 40 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }, { name: "サイコキネシス", nameEn: "Psychic", cost: 55 }
+                ]
+            },
+            {
+                name: "カブトプス", nameEn: "Kabutops",
+                fastMoves: [{ name: "マッドショット", nameEn: "Mud Shot", energy: 9, turns: 2 }, { name: "たきのぼり", nameEn: "Waterfall", energy: 10, turns: 3 }, { name: "れんぞくぎり", nameEn: "Fury Cutter", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "アクアジェット", nameEn: "Aqua Jet", cost: 40 }, { name: "ストーンエッジ", nameEn: "Stone Edge", cost: 55 }
+                ]
+            },
+            {
+                name: "キングドラ", nameEn: "Kingdra",
+                fastMoves: [{ name: "りゅうのいぶき", nameEn: "Dragon Breath", energy: 4, turns: 1 }],
+                chargedMoves: [
+                    { name: "なみのり", nameEn: "Surf", cost: 45 }, { name: "げきりん", nameEn: "Outrage", cost: 60 }, { name: "スピードスター", nameEn: "Swift", cost: 35 }
+                ]
+            },
+            {
+                name: "ネイティオ", nameEn: "Xatu",
+                fastMoves: [{ name: "つつく", nameEn: "Peck", energy: 8, turns: 2 }],
+                chargedMoves: [
+                    { name: "シャドーボール", nameEn: "Shadow Ball", cost: 50 }, { name: "サイコショック", nameEn: "Psyshock", cost: 40 }, { name: "みらいよち", nameEn: "Future Sight", cost: 65 }
+                ]
+            },
+            {
+                name: "ハリーセン", nameEn: "Qwilfish",
+                fastMoves: [{ name: "どくばり", nameEn: "Poison Sting", energy: 9, turns: 2 }],
+                chargedMoves: [
+                    { name: "シャドーボール", nameEn: "Shadow Ball", cost: 50 }, { name: "アクアテール", nameEn: "Aqua Tail", cost: 35 }, { name: "れいとうビーム", nameEn: "Ice Beam", cost: 55 }
+                ]
+            },
+            {
+                name: "ドサイドン", nameEn: "Rhyperior",
+                fastMoves: [{ name: "どろかけ", nameEn: "Mud-Slap", energy: 10, turns: 3 },{ name: "うちおとす", nameEn: "Smack Down", energy: 8, turns: 3 }],
+                chargedMoves: [
+                    { name: "ドリルライナー", nameEn: "Drill Run", cost: 40 }, { name: "なみのり", nameEn: "Surf", cost: 45 }, { name: "がんせきほう", nameEn: "Rock Wrecker", cost: 50 }, { name: "ばかぢから", nameEn: "Superpower", cost: 40 }
+                ]
+            },
+            {
+                name: "アズマオウ", nameEn: "Seaking",
+                fastMoves: [{ name: "どくづき", nameEn: "Poison Jab", energy: 7, turns: 2 }, { name: "たきのぼり", nameEn: "Waterfall", energy: 10, turns: 3 }],
+                chargedMoves: [
+                    { name: "こごえるかぜ", nameEn: "Icy Wind", cost: 45 }, { name: "ドリルライナー", nameEn: "Drill Run", cost: 40 }, { name: "メガホーン", nameEn: "Megahorn", cost: 55 }
                 ]
             }
         ];
